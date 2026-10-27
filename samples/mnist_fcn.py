@@ -77,7 +77,7 @@ def test(
     for x, y in test_loader:
       x, y = x.to(device), y.to(device)
       outputs = model(x)
-      _, predicted = outputs.max(1)
+      predicted = outputs.argmax(1)
       test_total += y.size(0)
       test_correct += predicted.eq(y).sum().item()
 
@@ -107,7 +107,7 @@ def train(
     classifier_optimizer.step()
 
     total_loss += loss.item() * x.size(0)
-    _, predicted = outputs.max(1)
+    predicted = outputs.argmax(1)
     total += y.size(0)
     correct += predicted.eq(y).sum().item()
                   
