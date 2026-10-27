@@ -21,12 +21,16 @@ def main():
   print(f"Using device: {device}")
 
   # dataset
-  train_dataset = datasets.MNIST(root='./data', train=True, download=True, transform=transform)
+  train_dataset, validation_dataset = torch.utils.data.random_split(
+    datasets.MNIST(root='./data', train=True, download=True, transform=transform),
+    [50000, 10000]
+  )
   test_dataset = datasets.MNIST(root='./data', train=False, download=True, transform=transform)
 
   # batch loader
   train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-  test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+  validation_loader = DataLoader(validation_dataset, batch_size=len(validation_dataset), shuffle=False)
+  test_loader = DataLoader(test_dataset, batch_size=len(test_dataset), shuffle=False)
   
   # model def
   def layer():
@@ -43,22 +47,23 @@ def main():
     )
   model = nn.Sequential(*[ layer() for _ in range(stacks) ]).to(device)
   classifier = nn.Linear(28 * 28, 10).to(device)
-
-  # train
-  model.train()
-  classifier.train()
-  for epoch in range(epochs):  
-    train_loss, train_acc = train(device, train_loader, model, classifier)
-    print(f"Epoch [{epoch+1}/{epochs}] | Train Loss: {train_loss:.4f} | Train Acc: {train_acc:.2f}%")
-    
   full_model = nn.Sequential(
     model,
     classifier,
   );
-  
+
+  # train
+  for epoch in range(epochs):  
+    model.train()
+    classifier.train()
+    train_loss, train_acc = train(device, train_loader, model, classifier)
+
+    full_model.eval()
+    validation_acc = test(device, validation_loader, full_model)
+    print(f"Epoch [{epoch+1}/{epochs}] | Train Loss: {train_loss:.4f} | Train Acc: {train_acc:.2f}% | Validation Acc: {validation_acc:.2f}%")
+
   # test
-  model.eval()
-  classifier.eval()
+  full_model.eval()
   test_acc = test(device, test_loader, full_model)
   print(f"\nFinal Test Accuracy: {test_acc:.2f}%")
   
