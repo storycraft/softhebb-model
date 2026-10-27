@@ -1,0 +1,28 @@
+[project]
+name = "softhebb-model"
+version = "0.1.0"
+description = "Softhebb based non backpropagation model experiment"
+license = "MIT"
+readme = "README.md"
+authors = [{ name = "storycraft", email = "me@pancake.sh" }]
+requires-python = ">=3.12"
+dependencies = ["torch>=2.14.1", "torchvision>=0.29.1"]
+
+[project.scripts]
+
+[build-system]
+requires = ["uv_build>=0.13.1,<0.14.0"]
+build-backend = "uv_build"
+
+[[tool.uv.index]]
+name = "pytorch-cu132"
+url = "https://download.pytorch.org/whl/cu132"
+explicit = true
+
+[tool.uv.sources]
+torch = [
+  { index = "pytorch-cu132", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+torchvision = [
+  { index = "pytorch-cu132", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
