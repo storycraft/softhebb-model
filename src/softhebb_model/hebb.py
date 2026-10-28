@@ -27,6 +27,7 @@ class SoftHebbLinear(nn.Module):
     super().train(mode)
     self.plasticity = mode
 
+  @torch.no_grad()
   def forward(self, x):
     post_x = F.linear(x, self.weight)  
     if self.plasticity:
@@ -34,7 +35,6 @@ class SoftHebbLinear(nn.Module):
   
     return post_x
 
-  @torch.no_grad()
   def update_hebbian(self, x, post_x):
     wta = F.softmax(post_x * self.t_inverse, dim=1)  # (batch_size, out_features)
 

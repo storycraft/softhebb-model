@@ -45,26 +45,23 @@ def main():
         SoftHebbLinear(28 * 28, 28 * 28),
       ),
     )
-  model = nn.Sequential(*[ layer() for _ in range(stacks) ]).to(device)
-  classifier = nn.Linear(28 * 28, 10).to(device)
-  full_model = nn.Sequential(
-    model,
-    classifier,
-  );
+  model = nn.Sequential(
+    nn.Sequential(*[ layer() for _ in range(stacks) ]),
+    nn.Linear(28 * 28, 10),
+  ).to(device);
 
   # train
-  for epoch in range(epochs):  
+  for epoch in range(epochs):
     model.train()
-    classifier.train()
-    train_loss, train_acc = train(device, train_loader, model, classifier)
+    train_loss, train_acc = train(device, train_loader, model)
 
-    full_model.eval()
-    validation_acc = test(device, validation_loader, full_model)
+    model.eval()
+    validation_acc = test(device, validation_loader, model)
     print(f"Epoch [{epoch+1}/{epochs}] | Train Loss: {train_loss:.4f} | Train Acc: {train_acc:.2f}% | Validation Acc: {validation_acc:.2f}%")
 
   # test
-  full_model.eval()
-  test_acc = test(device, test_loader, full_model)
+  model.eval()
+  test_acc = test(device, test_loader, model)
   print(f"\nFinal Test Accuracy: {test_acc:.2f}%")
   
 def test(
@@ -88,18 +85,18 @@ def train(
   device: torch.device,
   train_loader: DataLoader,
   model: nn.Module,
-  classifier: nn.Module,
 ):
   total_loss, correct, total = 0, 0, 0
 
-  classifier_optimizer = torch.optim.Adam(classifier.parameters(), lr=0.001)
+  classifier_optimizer = torch.optim.Adam(
+    filter(lambda p: p.requires_grad, model.parameters()),
+    lr=0.001,
+  )
   criterion = nn.CrossEntropyLoss()
   for x, y in train_loader:
     x, y = x.to(device), y.to(device)
-    with torch.no_grad():
-      features = model(x)
 
-    outputs = classifier(features)
+    outputs = model(x)
     loss = criterion(outputs, y)
                   
     classifier_optimizer.zero_grad()
