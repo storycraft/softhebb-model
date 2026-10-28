@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from torch.optim import Optimizer
 from softhebb_model.hebb import SoftHebbLinear
 from softhebb_model.residual import Residual
 from torchvision import datasets, transforms
@@ -40,8 +41,9 @@ def main():
 
     return Residual(
       nn.Sequential(
-        nn.LayerNorm((28 * 28,)),
+        nn.LayerNorm((28 * 28,), elementwise_affine=False),
         SoftHebbLinear(28 * 28, 28 * 28),
+        nn.LeakyReLU(),
       ),
     )
   model = nn.Sequential(
@@ -50,9 +52,10 @@ def main():
   ).to(device);
 
   # train
+  optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
   for epoch in range(epochs):
     model.train()
-    train_loss, train_acc = train(device, train_loader, model)
+    train_loss, train_acc = train(device, train_loader, model, optimizer)
 
     model.eval()
     validation_acc = test(device, validation_loader, model)
@@ -84,10 +87,10 @@ def train(
   device: torch.device,
   train_loader: DataLoader,
   model: nn.Module,
+  optimizer: Optimizer,
 ):
   total_loss, correct, total = 0, 0, 0
 
-  classifier_optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
   criterion = nn.CrossEntropyLoss()
   for x, y in train_loader:
     x, y = x.to(device), y.to(device)
@@ -95,9 +98,9 @@ def train(
     outputs = model(x)
     loss = criterion(outputs, y)
                   
-    classifier_optimizer.zero_grad()
+    optimizer.zero_grad()
     loss.backward()
-    classifier_optimizer.step()
+    optimizer.step()
 
     total_loss += loss.item() * x.size(0)
     predicted = outputs.argmax(1)
