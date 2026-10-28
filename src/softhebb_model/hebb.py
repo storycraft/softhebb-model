@@ -21,12 +21,15 @@ class SoftHebbLinear(nn.Module):
     self.lr = lr
     self.plasticity = plasticity
 
-    self.register_buffer('weight', torch.randn(out_features, in_features))
-    self.normalize_weights()
+    self.register_buffer(
+      'weight',
+      F.normalize(torch.randn(out_features, in_features), p=2, dim=1)
+    )
 
   def train(self, mode=True):
     super().train(mode)
     self.plasticity = mode
+    return self
 
   @torch.no_grad()
   def forward(self, x: Tensor):
@@ -37,17 +40,14 @@ class SoftHebbLinear(nn.Module):
     return post_x
 
   def update_hebbian(self, x: Tensor, post_x: Tensor):
-    wta = F.softmax(post_x * self.t_inverse, dim=1)  # (batch_size, out_features)
+    wta = F.softmax(post_x * self.t_inverse, dim=1) # (batch_size, out_features)
 
-    yx = torch.matmul(wta.t(), x)  # Overlap between winner take all and inputs
-    yu = torch.multiply(wta, post_x)
-    yu = torch.sum(yu.t(), dim=1).unsqueeze(1)
+    yx = wta.T @ x # Overlap between winner take all and inputs
+    yu = wta * post_x
+    yu = torch.sum(yu.T, dim=1).unsqueeze(1)
 
     delta_weight = yx - yu.view(-1, 1) * self.weight
-
-    self.weight.add_(self.lr * delta_weight)
-    self.normalize_weights()
-
-  def normalize_weights(self):
-    norm = self.weight.norm(p=2, dim=1, keepdim=True)
-    self.weight.div_(norm.clamp(min=1e-12))
+    delta_weight /= torch.abs(delta_weight).amax().clamp_min(
+      torch.finfo(delta_weight.dtype).tiny
+    )
+    self.weight += self.lr * delta_weight
