@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from softhebb_model.hebb import SoftHebbLinear
 from softhebb_model.residual import Residual
 from torchvision import datasets, transforms
@@ -88,10 +87,7 @@ def train(
 ):
   total_loss, correct, total = 0, 0, 0
 
-  classifier_optimizer = torch.optim.Adam(
-    filter(lambda p: p.requires_grad, model.parameters()),
-    lr=0.001,
-  )
+  classifier_optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
   criterion = nn.CrossEntropyLoss()
   for x, y in train_loader:
     x, y = x.to(device), y.to(device)
